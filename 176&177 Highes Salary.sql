@@ -8,6 +8,9 @@ SELECT Salary,
 FROM Employee ) as EM
 WHERE EM.ranking = 2),NULL)) as SecondHighestSalary
 
+ELECT MAX(Salary) AS SecondHighestSalary FROM Employee
+WHERE Salary < (SELECT MAX(Salary) FROM Employee)
+
 
 
 
