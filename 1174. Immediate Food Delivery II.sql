@@ -1,13 +1,8 @@
-SELECT 
-ROUND(100 * COUNT(*)/(SELECT COUNT(DISTINCT customer_id) FROM Delivery),2) 
-AS immediate_percentage
-FROM Delivery AS a
-JOIN (
-SELECT
-customer_id, MIN(order_date) AS first_order
-FROM Delivery
-GROUP BY customer_id
-) AS b
-ON a.customer_id = b.customer_id
-AND a.order_date = b.first_order
-WHERE a.order_date = a.customer_pref_delivery_date
+select 
+round(100*sum(case when b.min_order_date = b.min_delivery_date then 1 else 0 end)/count(*), 2)
+as immediate_percentage
+from (
+  select min(order_date) as min_order_date, min(customer_pref_delivery_date) as min_delivery_date
+  from delivery
+  group by customer_id
+) b;
