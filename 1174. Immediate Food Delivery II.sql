@@ -1,8 +1,12 @@
-select 
-round(100*sum(case when b.min_order_date = b.min_delivery_date then 1 else 0 end)/count(*), 2)
-as immediate_percentage
-from (
-  select min(order_date) as min_order_date, min(customer_pref_delivery_date) as min_delivery_date
-  from delivery
-  group by customer_id
-) b;
+with temp as (
+SELECT *, row_number() over(partition by product_id order by change_date desc) as rk
+from Products
+where change_date <= '2019-08-16'
+)
+,
+list as (select distinct product_id from Products)
+
+select
+list.product_id,
+coalesce(new_price,10) as price
+from list left join temp on (list.product_id = temp.product_id and temp.rk=1)
