@@ -1,17 +1,19 @@
-SELECT D.INSTALL_DT, SUM(INS_IND) AS INSTALLS, AVG(DAY1_IND) AS DAY1_RETENTION
-FROM(SELECT C.*, CASE WHEN C.EVENT_DATE = C.INSTALL_DATE THEN 1 ELSE 0 END AS INS_IND,
-                 CASE WHEN DATEDIFF(EVENT_DATE, INSTALL)DATE) = 1 THEN 1 ELSE 0 END AS DAY1_IND
-                 FROM (SELECT *, (SELECT MIN(EVENT_DATE) AS INSTALL_DATE FROM ACTIVITY AS B WHERE A.PLAYER_ID = B.PLAYER_ID)
-                       FROM ACTIVITY AS A)) AS C) AS D
-GGROUP BY D.INSTALL_DT
-
-
-
-SELECT a.install_dt, COUNT(a.player_id) AS installs,
-ROUND(COUNT(b.player_id)/COUNT(a.player_id),2) AS Day1_retention FROM (
-SELECT DISTINCT player_id, FIRST_VALUE(event_date) OVER(PARTITION BY player_id ORDER BY event_date) AS install_dt FROM Activity
-) AS a
-LEFT JOIN Activity AS b
-ON a.player_id = b.player_id
-AND DATEDIFF(b.event_date, a.install_dt) = 1
-GROUP BY a.install_dt
+WITH temp AS (
+    SELECT PLAYER_ID, EVENT_DATE AS install_dt,
+           ROW_NUMBER() OVER(PARTITION BY PLAYER_ID ORDER BY EVENT_DATE) AS RK
+    FROM Activity
+)
+SELECT 
+    install_dt,
+    COUNT(*) AS installs,
+    ROUND(
+        SUM(CASE WHEN EXISTS (
+            SELECT 1 
+            FROM Activity a 
+            WHERE a.PLAYER_ID = temp.PLAYER_ID 
+            AND DATEDIFF(a.EVENT_DATE, temp.install_dt) = 1
+        ) THEN 1 ELSE 0 END) / COUNT(*), 2
+    ) AS day1_retention
+FROM temp
+WHERE RK = 1
+GROUP BY install_dt;
